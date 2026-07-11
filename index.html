@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>eMens Mobility</title>
+  <style>
+    body { font-family: sans-serif; max-width: 400px; margin: 40px auto; padding: 0 16px; }
+    #result { margin-top: 20px; padding: 16px; border: 1px solid #ddd; border-radius: 8px; }
+    .freshness { color: #666; font-size: 13px; }
+    button { padding: 10px 16px; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <h1>eMens Mobility</h1>
+  <button id="locate-btn">Find nearest Vélib' station</button>
+  <div id="result"></div>
+
+  <script>
+    document.getElementById("locate-btn").addEventListener("click", () => {
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "Locating you...";
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        resultDiv.textContent = "Fetching nearest station...";
+
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/stations/nearest?lat=${lat}&lon=${lon}`);
+          const data = await response.json();
+          const station = data;
+
+          resultDiv.innerHTML = `
+            <h2>${station.name}</h2>
+            <p>${data.distance_meters} meters away</p>
+            <p>🚲 ${station.state.mechanical_bikes} mechanical · ⚡ ${station.state.electric_bikes} electric · 🅿️ ${station.state.free_docks} free docks</p>
+            <p class="freshness">Source: ${station.provenance.source} · updated ${station.provenance.freshness_seconds}s ago · confidence: ${station.provenance.confidence}</p>
+          `;
+        } catch (error) {
+  console.error("Fetch error:", error);
+  resultDiv.textContent = "Something went wrong fetching station data.";
+        }
+      }, () => {
+        resultDiv.textContent = "Could not get your location.";
+      });
+    });
+  </script>
+</body>
+</html>

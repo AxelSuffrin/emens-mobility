@@ -1,11 +1,22 @@
 from fastapi import FastAPI, Query, HTTPException
 from app.velib_client import fetch_stations, fetch_status, merge_station_data, find_nearest_station
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI(
     title="eMens Mobility API",
     description="Real-time Vélib' station lookup — eMens v0.1",
     version="0.1.0"
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/stations/nearest")
 def get_nearest_station(
