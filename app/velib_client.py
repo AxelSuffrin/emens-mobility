@@ -1,4 +1,5 @@
 import requests
+import time
 from math import radians, sin, cos, sqrt, atan2
 
 
@@ -22,16 +23,25 @@ def merge_station_data(stations, statuses):
         status = status_by_id.get(station["station_id"])
         if status is None:
             continue
+        freshness_seconds = int(time.time()) - status["last_reported"]
         merged.append({
-            "station_id": station["station_id"],
+            "entity_id": f"emens:mobility:velib:station:{station['station_id']}",
             "name": station["name"],
             "lat": station["lat"],
             "lon": station["lon"],
-            "mechanical_bikes": status["num_bikes_available_types"][0].get("mechanical", 0),
-            "electric_bikes": status["num_bikes_available_types"][1].get("ebike", 0),
-            "free_docks": status["num_docks_available"],
-            "last_reported": status["last_reported"],
-            "is_renting": status["is_renting"] == 1,
+            "state": {
+                "mechanical_bikes": status["num_bikes_available_types"][0].get("mechanical", 0),
+                "electric_bikes": status["num_bikes_available_types"][1].get("ebike", 0),
+                "free_docks": status["num_docks_available"],
+                "is_renting": status["is_renting"] == 1,
+            },
+            "provenance": {
+                "source": "velib_gbfs",
+                "last_reported": status["last_reported"],
+                "freshness_seconds": freshness_seconds,
+                "confidence": "official_live",
+            },
+            "actions": ["navigate", "open_official_app"],
         })
     return merged
 
