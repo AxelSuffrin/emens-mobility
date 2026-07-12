@@ -7,20 +7,49 @@
     body { font-family: sans-serif; max-width: 400px; margin: 40px auto; padding: 0 16px; }
     #result { margin-top: 20px; padding: 16px; border: 1px solid #ddd; border-radius: 8px; }
     .freshness { color: #666; font-size: 13px; }
-    button { padding: 10px 16px; font-size: 15px; }
+    button { padding: 10px 16px; font-size: 15px; margin-right: 8px; }
   </style>
 </head>
 <body>
   <h1>eMens Mobility</h1>
-  <button id="locate-btn">Find nearest Vélib' station</button>
+  <button id="locate-velib-btn">Find nearest Vélib' station</button>
+  <button id="locate-restaurant-btn">Find nearest restaurant</button>
   <div id="result"></div>
 
   <script>
-  const locateBtn = document.getElementById("locate-btn");
   const resultDiv = document.getElementById("result");
 
-  locateBtn.addEventListener("click", () => {
-    locateBtn.disabled = true;
+  function renderProvenance(provenance) {
+    const freshness = provenance.freshness_seconds != null
+      ? `updated ${provenance.freshness_seconds}s ago`
+      : "no live timestamp";
+    return `<p class="freshness">Source: ${provenance.source} · ${freshness} · confidence: ${provenance.confidence}</p>`;
+  }
+
+  function renderStation(station) {
+    resultDiv.innerHTML = `
+      <h2>${station.name}</h2>
+      <p>${station.distance_meters} meters away</p>
+      <p>🚲 ${station.state.mechanical_bikes} mechanical · ⚡ ${station.state.electric_bikes} electric · 🅿️ ${station.state.free_docks} free docks</p>
+      ${renderProvenance(station.provenance)}
+    `;
+  }
+
+  function renderRestaurant(restaurant) {
+    const cuisine = restaurant.state.cuisine || "cuisine unknown";
+    const address = restaurant.state.address || "address unknown";
+    const hours = restaurant.state.opening_hours || "hours unknown";
+    resultDiv.innerHTML = `
+      <h2>${restaurant.name || "Unnamed restaurant"}</h2>
+      <p>${restaurant.distance_meters} meters away</p>
+      <p>🍽️ ${cuisine} · 📍 ${address}</p>
+      <p>🕒 ${hours}</p>
+      ${renderProvenance(restaurant.provenance)}
+    `;
+  }
+
+  function locate(endpoint, loadingText, onSuccess, btn) {
+    btn.disabled = true;
     resultDiv.textContent = "Locating you...";
 
     navigator.geolocation.getCurrentPosition(
@@ -28,28 +57,22 @@
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
-        resultDiv.textContent = "Fetching nearest station...";
+        resultDiv.textContent = loadingText;
 
         try {
-          const response = await fetch(`/stations/nearest?lat=${lat}&lon=${lon}`);
+          const response = await fetch(`${endpoint}?lat=${lat}&lon=${lon}`);
 
           if (!response.ok) {
             throw new Error(`Server returned ${response.status}`);
           }
 
-          const station = await response.json();
-
-          resultDiv.innerHTML = `
-            <h2>${station.name}</h2>
-            <p>${station.distance_meters} meters away</p>
-            <p>🚲 ${station.state.mechanical_bikes} mechanical · ⚡ ${station.state.electric_bikes} electric · 🅿️ ${station.state.free_docks} free docks</p>
-            <p class="freshness">Source: ${station.provenance.source} · updated ${station.provenance.freshness_seconds}s ago · confidence: ${station.provenance.confidence}</p>
-          `;
+          const data = await response.json();
+          onSuccess(data);
         } catch (error) {
           console.error("Fetch error:", error);
-          resultDiv.textContent = "Couldn't reach the station data. Please try again.";
+          resultDiv.textContent = "Couldn't reach the data. Please try again.";
         } finally {
-          locateBtn.disabled = false;
+          btn.disabled = false;
         }
       },
       (geoError) => {
@@ -62,10 +85,18 @@
           message = "Location unavailable right now. Try again in a moment.";
         }
         resultDiv.textContent = message;
-        locateBtn.disabled = false;
+        btn.disabled = false;
       }
     );
+  }
+
+  document.getElementById("locate-velib-btn").addEventListener("click", (e) => {
+    locate("/stations/nearest", "Fetching nearest station...", renderStation, e.target);
   });
-</script>
+
+  document.getElementById("locate-restaurant-btn").addEventListener("click", (e) => {
+    locate("/restaurants/nearest", "Fetching nearest restaurant...", renderRestaurant, e.target);
+  });
+  </script>
 </body>
 </html>
