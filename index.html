@@ -16,11 +16,15 @@
   <div id="result"></div>
 
   <script>
-    document.getElementById("locate-btn").addEventListener("click", () => {
-      const resultDiv = document.getElementById("result");
-      resultDiv.textContent = "Locating you...";
+  const locateBtn = document.getElementById("locate-btn");
+  const resultDiv = document.getElementById("result");
 
-      navigator.geolocation.getCurrentPosition(async (position) => {
+  locateBtn.addEventListener("click", () => {
+    locateBtn.disabled = true;
+    resultDiv.textContent = "Locating you...";
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
@@ -28,23 +32,40 @@
 
         try {
           const response = await fetch(`/stations/nearest?lat=${lat}&lon=${lon}`);
-          const data = await response.json();
-          const station = data;
+
+          if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+          }
+
+          const station = await response.json();
 
           resultDiv.innerHTML = `
             <h2>${station.name}</h2>
-            <p>${data.distance_meters} meters away</p>
+            <p>${station.distance_meters} meters away</p>
             <p>🚲 ${station.state.mechanical_bikes} mechanical · ⚡ ${station.state.electric_bikes} electric · 🅿️ ${station.state.free_docks} free docks</p>
             <p class="freshness">Source: ${station.provenance.source} · updated ${station.provenance.freshness_seconds}s ago · confidence: ${station.provenance.confidence}</p>
           `;
         } catch (error) {
-  console.error("Fetch error:", error);
-  resultDiv.textContent = "Something went wrong fetching station data.";
+          console.error("Fetch error:", error);
+          resultDiv.textContent = "Couldn't reach the station data. Please try again.";
+        } finally {
+          locateBtn.disabled = false;
         }
-      }, () => {
-        resultDiv.textContent = "Could not get your location.";
-      });
-    });
-  </script>
+      },
+      (geoError) => {
+        let message = "Could not get your location.";
+        if (geoError.code === geoError.PERMISSION_DENIED) {
+          message = "Location access denied. Enable it in your browser settings and try again.";
+        } else if (geoError.code === geoError.TIMEOUT) {
+          message = "Location request timed out. Try again.";
+        } else if (geoError.code === geoError.POSITION_UNAVAILABLE) {
+          message = "Location unavailable right now. Try again in a moment.";
+        }
+        resultDiv.textContent = message;
+        locateBtn.disabled = false;
+      }
+    );
+  });
+</script>
 </body>
 </html>
