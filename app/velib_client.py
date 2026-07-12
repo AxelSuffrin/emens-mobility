@@ -16,6 +16,23 @@ def fetch_status():
     response.raise_for_status()
     return response.json()["data"]["stations"]
 
+def parse_bike_types(num_bikes_available_types):
+    mechanical = 0
+    ebike = 0
+
+    if not isinstance(num_bikes_available_types, list):
+        return mechanical, ebike
+
+    for item in num_bikes_available_types:
+        if not isinstance(item, dict):
+            continue
+        if "mechanical" in item and isinstance(item["mechanical"], int):
+            mechanical += item["mechanical"]
+        if "ebike" in item and isinstance(item["ebike"], int):
+            ebike += item["ebike"]
+
+    return mechanical, ebike
+
 def merge_station_data(stations, statuses):
     status_by_id = {s["station_id"]: s for s in statuses}
     merged = []
@@ -24,14 +41,19 @@ def merge_station_data(stations, statuses):
         if status is None:
             continue
         freshness_seconds = int(time.time()) - status["last_reported"]
+
+        mechanical_bikes, electric_bikes = parse_bike_types(
+            status.get("num_bikes_available_types", [])
+        )
+
         merged.append({
             "entity_id": f"emens:mobility:velib:station:{station['station_id']}",
             "name": station["name"],
             "lat": station["lat"],
             "lon": station["lon"],
             "state": {
-                "mechanical_bikes": status["num_bikes_available_types"][0].get("mechanical", 0),
-                "electric_bikes": status["num_bikes_available_types"][1].get("ebike", 0),
+                "mechanical_bikes": mechanical_bikes,
+                "electric_bikes": electric_bikes,
                 "free_docks": status["num_docks_available"],
                 "is_renting": status["is_renting"] == 1,
             },
