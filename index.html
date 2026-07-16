@@ -7,13 +7,14 @@
     body { font-family: sans-serif; max-width: 400px; margin: 40px auto; padding: 0 16px; }
     #result { margin-top: 20px; padding: 16px; border: 1px solid #ddd; border-radius: 8px; }
     .freshness { color: #666; font-size: 13px; }
-    button { padding: 10px 16px; font-size: 15px; margin-right: 8px; }
+    button { padding: 10px 16px; font-size: 15px; margin-right: 8px; margin-bottom: 8px; }
   </style>
 </head>
 <body>
   <h1>eMens Mobility</h1>
   <button id="locate-velib-btn">Find nearest Vélib' station</button>
   <button id="locate-restaurant-btn">Find nearest restaurant</button>
+  <button id="locate-cinema-btn">Find nearest cinema</button>
   <div id="result"></div>
 
   <script>
@@ -45,6 +46,20 @@
       <p>🍽️ ${cuisine} · 📍 ${address}</p>
       <p>🕒 ${hours}</p>
       ${renderProvenance(restaurant.provenance)}
+    `;
+  }
+
+  function renderCinema(cinema) {
+    const operator = cinema.state.operator || "independent / operator unknown";
+    const address = cinema.state.address || "address unknown";
+    const screens = cinema.state.screens ? `${cinema.state.screens} screens` : "screen count unknown";
+    const wheelchair = cinema.state.wheelchair || "accessibility unknown";
+    resultDiv.innerHTML = `
+      <h2>${cinema.name || "Unnamed cinema"}</h2>
+      <p>${cinema.distance_meters} meters away</p>
+      <p>🎬 ${operator} · 📍 ${address}</p>
+      <p>🖥️ ${screens} · ♿ ${wheelchair}</p>
+      ${renderProvenance(cinema.provenance)}
     `;
   }
 
@@ -96,6 +111,10 @@
 
   document.getElementById("locate-restaurant-btn").addEventListener("click", (e) => {
     locate("/restaurants/nearest", "Fetching nearest restaurant...", renderRestaurant, e.target);
+  });
+
+  document.getElementById("locate-cinema-btn").addEventListener("click", (e) => {
+    locate("/cinemas/nearest", "Fetching nearest cinema...", renderCinema, e.target);
   });
   </script>
 </body>
