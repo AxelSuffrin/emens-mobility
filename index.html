@@ -15,6 +15,7 @@
   <button id="locate-velib-btn">Find nearest Vélib' station</button>
   <button id="locate-restaurant-btn">Find nearest restaurant</button>
   <button id="locate-cinema-btn">Find nearest cinema</button>
+  <button id="locate-gym-btn">Find nearest gym</button>
   <div id="result"></div>
 
   <script>
@@ -60,6 +61,20 @@
       <p>🎬 ${operator} · 📍 ${address}</p>
       <p>🖥️ ${screens} · ♿ ${wheelchair}</p>
       ${renderProvenance(cinema.provenance)}
+    `;
+  }
+
+  function renderGym(gym) {
+    const operator = gym.state.operator || "independent / operator unknown";
+    const address = gym.state.address || "address unknown";
+    const hours = gym.state.opening_hours || "hours unknown";
+    const fee = gym.state.fee || "fee info unknown";
+    resultDiv.innerHTML = `
+      <h2>${gym.name || "Unnamed gym"}</h2>
+      <p>${gym.distance_meters} meters away</p>
+      <p>💪 ${operator} · 📍 ${address}</p>
+      <p>🕒 ${hours} · 💳 ${fee}</p>
+      ${renderProvenance(gym.provenance)}
     `;
   }
 
@@ -115,6 +130,10 @@
 
   document.getElementById("locate-cinema-btn").addEventListener("click", (e) => {
     locate("/cinemas/nearest", "Fetching nearest cinema...", renderCinema, e.target);
+  });
+
+  document.getElementById("locate-gym-btn").addEventListener("click", (e) => {
+    locate("/gyms/nearest", "Fetching nearest gym...", renderGym, e.target);
   });
   </script>
 </body>
