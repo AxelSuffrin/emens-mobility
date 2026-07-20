@@ -17,10 +17,14 @@
   <button id="locate-cinema-btn">Find nearest cinema</button>
   <button id="locate-gym-btn">Find nearest gym</button>
   <button id="locate-bar-btn">Find nearest bar</button>
+  <button id="locate-culture-btn">Find nearest culture site</button>
+
   <div id="result"></div>
+
 
   <script>
   const resultDiv = document.getElementById("result");
+
 
   function renderProvenance(provenance) {
     const freshness = provenance.freshness_seconds != null
@@ -28,6 +32,7 @@
       : "no live timestamp";
     return `<p class="freshness">Source: ${provenance.source} · ${freshness} · confidence: ${provenance.confidence}</p>`;
   }
+
 
   function renderStation(station) {
     resultDiv.innerHTML = `
@@ -37,6 +42,7 @@
       ${renderProvenance(station.provenance)}
     `;
   }
+
 
   function renderRestaurant(restaurant) {
     const cuisine = restaurant.state.cuisine || "cuisine unknown";
@@ -50,6 +56,7 @@
       ${renderProvenance(restaurant.provenance)}
     `;
   }
+
 
   function renderCinema(cinema) {
     const operator = cinema.state.operator || "independent / operator unknown";
@@ -65,6 +72,7 @@
     `;
   }
 
+
   function renderGym(gym) {
     const operator = gym.state.operator || "independent / operator unknown";
     const address = gym.state.address || "address unknown";
@@ -78,6 +86,7 @@
       ${renderProvenance(gym.provenance)}
     `;
   }
+
 
   function renderBar(bar) {
     const address = bar.state.address || "address unknown";
@@ -97,23 +106,48 @@
     `;
   }
 
+
+  function renderCulture(site) {
+    const category = site.state.category || "culture site";
+    const address = site.state.address || "address unknown";
+    const hours = site.state.opening_hours || "hours unknown";
+    const fee = site.state.fee || "fee info unknown";
+    const website = site.state.website
+      ? `<a href="${site.state.website}" target="_blank">website</a>`
+      : "no website listed";
+    resultDiv.innerHTML = `
+      <h2>${site.name || "Unnamed culture site"} (${category})</h2>
+      <p>${site.distance_meters} meters away</p>
+      <p>📍 ${address}</p>
+      <p>🕒 ${hours} · 💳 ${fee}</p>
+      <p>🔗 ${website}</p>
+      ${renderProvenance(site.provenance)}
+    `;
+  }
+
+
   function locate(endpoint, loadingText, onSuccess, btn) {
     btn.disabled = true;
     resultDiv.textContent = "Locating you...";
+
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
+
         resultDiv.textContent = loadingText;
+
 
         try {
           const response = await fetch(`${endpoint}?lat=${lat}&lon=${lon}`);
 
+
           if (!response.ok) {
             throw new Error(`Server returned ${response.status}`);
           }
+
 
           const data = await response.json();
           onSuccess(data);
@@ -139,24 +173,34 @@
     );
   }
 
+
   document.getElementById("locate-velib-btn").addEventListener("click", (e) => {
     locate("/stations/nearest", "Fetching nearest station...", renderStation, e.target);
   });
+
 
   document.getElementById("locate-restaurant-btn").addEventListener("click", (e) => {
     locate("/restaurants/nearest", "Fetching nearest restaurant...", renderRestaurant, e.target);
   });
 
+
   document.getElementById("locate-cinema-btn").addEventListener("click", (e) => {
     locate("/cinemas/nearest", "Fetching nearest cinema...", renderCinema, e.target);
   });
+
 
   document.getElementById("locate-gym-btn").addEventListener("click", (e) => {
     locate("/gyms/nearest", "Fetching nearest gym...", renderGym, e.target);
   });
 
+
   document.getElementById("locate-bar-btn").addEventListener("click", (e) => {
     locate("/bars/nearest", "Fetching nearest bar...", renderBar, e.target);
+  });
+
+
+  document.getElementById("locate-culture-btn").addEventListener("click", (e) => {
+    locate("/culture/nearest", "Fetching nearest culture site...", renderCulture, e.target);
   });
   </script>
 </body>

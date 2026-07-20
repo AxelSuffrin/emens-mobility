@@ -7,6 +7,7 @@ from app.bar_client import fetch_bars, normalize_bars, find_nearest_bar
 from fastapi.middleware.cors import CORSMiddleware
 #from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from app.culture_client import fetch_culture_sites, normalize_culture_sites, find_nearest_culture_site
 
 
 
@@ -127,3 +128,12 @@ def get_nearest_bar(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/culture/nearest")
+def culture_nearest(lat: float, lon: float, radius_m: int = 1500):
+    elements = fetch_culture_sites(lat, lon, radius_m=radius_m)
+    sites = normalize_culture_sites(elements)
+    nearest, distance = find_nearest_culture_site(sites, lat, lon)
+    if nearest is None:
+        raise HTTPException(status_code=404, detail="No culture sites found nearby")
+    return {**nearest, "distance_meters": round(distance)}
