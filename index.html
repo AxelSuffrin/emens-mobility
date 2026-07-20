@@ -16,6 +16,7 @@
   <button id="locate-restaurant-btn">Find nearest restaurant</button>
   <button id="locate-cinema-btn">Find nearest cinema</button>
   <button id="locate-gym-btn">Find nearest gym</button>
+  <button id="locate-bar-btn">Find nearest bar</button>
   <div id="result"></div>
 
   <script>
@@ -78,6 +79,24 @@
     `;
   }
 
+  function renderBar(bar) {
+    const address = bar.state.address || "address unknown";
+    const hours = bar.state.opening_hours || "hours unknown";
+    const liveMusic = bar.state.live_music === "yes"
+      ? "live music 🎶"
+      : bar.state.live_music === "no"
+        ? "no live music"
+        : "live music unknown";
+    const outdoor = bar.state.outdoor_seating === "yes" ? "outdoor seating" : "seating unknown";
+    resultDiv.innerHTML = `
+      <h2>${bar.name || "Unnamed bar"}</h2>
+      <p>${bar.distance_meters} meters away</p>
+      <p>🍸 ${liveMusic} · 🪑 ${outdoor}</p>
+      <p>📍 ${address} · 🕒 ${hours}</p>
+      ${renderProvenance(bar.provenance)}
+    `;
+  }
+
   function locate(endpoint, loadingText, onSuccess, btn) {
     btn.disabled = true;
     resultDiv.textContent = "Locating you...";
@@ -134,6 +153,10 @@
 
   document.getElementById("locate-gym-btn").addEventListener("click", (e) => {
     locate("/gyms/nearest", "Fetching nearest gym...", renderGym, e.target);
+  });
+
+  document.getElementById("locate-bar-btn").addEventListener("click", (e) => {
+    locate("/bars/nearest", "Fetching nearest bar...", renderBar, e.target);
   });
   </script>
 </body>

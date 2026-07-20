@@ -3,6 +3,7 @@ from app.velib_client import fetch_stations, fetch_status, merge_station_data, f
 from app.restaurant_client import fetch_restaurants, normalize_restaurants, find_nearest_restaurant
 from app.cinema_client import fetch_cinemas, normalize_cinemas, find_nearest_cinema
 from app.gym_client import fetch_gyms, normalize_gyms, find_nearest_gym
+from app.bar_client import fetch_bars, normalize_bars, find_nearest_bar
 from fastapi.middleware.cors import CORSMiddleware
 #from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -11,7 +12,7 @@ from fastapi.responses import FileResponse
 
 app = FastAPI(
     title="eMens Mobility API",
-    description="Real-time Vélib' station, restaurant, cinema, and gym lookup — eMens v0.1",
+    description="Real-time Vélib' station, restaurant, cinema, gym, and bar lookup — eMens v0.1",
     version="0.1.0"
 )
 
@@ -91,10 +92,6 @@ def get_nearest_gym(
     lat: float = Query(..., description="Latitude of the user's position"),
     lon: float = Query(..., description="Longitude of the user's position")
 ):
-    """
-    Returns the nearest gym/fitness centre (OpenStreetMap data) and its
-    available details for a given lat/lon coordinate.
-    """
     try:
         elements = fetch_gyms(lat, lon, radius_m=1000)
         gyms = normalize_gyms(elements)
@@ -103,6 +100,29 @@ def get_nearest_gym(
         gym, distance = find_nearest_gym(gyms, lat, lon)
         gym["distance_meters"] = round(distance, 1)
         return gym
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/bars/nearest")
+def get_nearest_bar(
+    lat: float = Query(..., description="Latitude of the user's position"),
+    lon: float = Query(..., description="Longitude of the user's position")
+):
+    """
+    Returns the nearest bar (OpenStreetMap data) and its
+    available details for a given lat/lon coordinate.
+    """
+    try:
+        elements = fetch_bars(lat, lon, radius_m=500)
+        bars = normalize_bars(elements)
+        if not bars:
+            raise HTTPException(status_code=404, detail="No bars found nearby")
+        bar, distance = find_nearest_bar(bars, lat, lon)
+        bar["distance_meters"] = round(distance, 1)
+        return bar
     except HTTPException:
         raise
     except Exception as e:
